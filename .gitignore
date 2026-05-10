@@ -1,0 +1,22 @@
+# Binário compilado
+pii-hunter
+pii-hunter.exe
+
+# Relatórios gerados pelo scan
+reports/
+
+# Cobertura de testes
+coverage.out
+*.out
+
+# Variáveis de ambiente locais
+.env
+.env.*
+
+# Configurações locais do editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Configurações locais do Claude Code
+.claude/settings.local.json
