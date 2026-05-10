@@ -36,7 +36,7 @@ O PII Hunter automatiza a parte mais trabalhosa desse processo.
 
 ```bash
 # Clone o repositório
-git clone https://github.com/piihunter/pii-hunter.git
+git clone https://github.com/serjjiin/pii-hunter.git
 cd pii-hunter
 
 # Instale dependências
