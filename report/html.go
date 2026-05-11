@@ -1,7 +1,8 @@
-// Package report gera os relatórios HTML e PDF a partir dos resultados do scan.
 package report
 
 import (
+	"bytes"
+	_ "embed"
 	"fmt"
 	"html/template"
 	"os"
@@ -10,22 +11,29 @@ import (
 	"github.com/piihunter/pii-hunter/models"
 )
 
-// GenerateHTML gera o relatório HTML do scan e salva em outputDir/relatorio.html.
-func GenerateHTML(result models.ScanResult, outputDir string) error {
-	// TODO: implementar após rodar os testes (TDD)
-	// 1. Criar outputDir se não existir (os.MkdirAll)
-	// 2. Carregar template de report/templates/report.html
-	// 3. Executar template com result
-	// 4. Salvar em outputDir/relatorio.html
-	_ = result
-	_ = template.New // import usado no futuro
+//go:embed templates/report.html
+var reportHTMLTemplate string
 
+// GenerateHTML gera o relatório HTML do scan e salva em outputDir/relatorio.html.
+// O template é embarcado no binário via //go:embed — não requer arquivos externos.
+func GenerateHTML(result models.ScanResult, outputDir string) error {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("falha ao criar diretório de saída: %w", err)
 	}
 
-	outPath := filepath.Join(outputDir, "relatorio.html")
-	_ = outPath
+	tmpl, err := template.New("report").Parse(reportHTMLTemplate)
+	if err != nil {
+		return fmt.Errorf("falha ao parsear template: %w", err)
+	}
 
-	return fmt.Errorf("GenerateHTML: não implementado")
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, result); err != nil {
+		return fmt.Errorf("falha ao renderizar relatório: %w", err)
+	}
+
+	outPath := filepath.Join(outputDir, "relatorio.html")
+	if err := os.WriteFile(outPath, buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("falha ao salvar arquivo: %w", err)
+	}
+	return nil
 }

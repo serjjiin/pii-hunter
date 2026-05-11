@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>PII Hunter — Relatório de Scan</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #222; }
+    h1 { color: #c0392b; }
+    h2 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 6px; }
+    .meta { color: #666; font-size: 0.9em; margin-bottom: 24px; }
+    .summary { display: flex; gap: 16px; margin-bottom: 32px; }
+    .badge { padding: 12px 20px; border-radius: 6px; text-align: center; font-weight: bold; }
+    .critico  { background: #e74c3c; color: #fff; }
+    .alto     { background: #e67e22; color: #fff; }
+    .medio    { background: #f1c40f; color: #222; }
+    .baixo    { background: #2ecc71; color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
+    th { background: #2c3e50; color: #fff; padding: 10px; text-align: left; }
+    td { padding: 9px 10px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .risk-CRÍTICO { color: #c0392b; font-weight: bold; }
+    .risk-ALTO    { color: #e67e22; font-weight: bold; }
+    .risk-MÉDIO   { color: #d4ac0d; font-weight: bold; }
+    .risk-BAIXO   { color: #27ae60; font-weight: bold; }
+    footer { margin-top: 48px; font-size: 0.8em; color: #999; border-top: 1px solid #eee; padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 PII Hunter — Relatório de Dados Pessoais</h1>
+
+  <div class="meta">
+    <strong>Banco:</strong> {{.Database}} &nbsp;|&nbsp;
+    <strong>Schema:</strong> {{.Schema}} &nbsp;|&nbsp;
+    <strong>Host:</strong> {{.Host}} &nbsp;|&nbsp;
+    <strong>Data:</strong> {{.ScannedAt.Format "02/01/2006 15:04:05"}} &nbsp;|&nbsp;
+    <strong>Duração:</strong> {{printf "%.2f" .DurationSec}}s
+  </div>
+
+  <h2>Resumo Executivo</h2>
+  <div class="summary">
+    <div class="badge critico">🔴 CRÍTICO<br>{{.Summary.Critical}} coluna(s)</div>
+    <div class="badge alto">🟠 ALTO<br>{{.Summary.High}} coluna(s)</div>
+    <div class="badge medio">🟡 MÉDIO<br>{{.Summary.Medium}} coluna(s)</div>
+    <div class="badge baixo">🟢 BAIXO<br>{{.Summary.Low}} coluna(s)</div>
+  </div>
+  <p>
+    Tabelas escaneadas: <strong>{{.TotalTables}}</strong> &nbsp;|&nbsp;
+    Colunas escaneadas: <strong>{{.TotalColumns}}</strong> &nbsp;|&nbsp;
+    Colunas com PII: <strong>{{.TotalPIICols}}</strong>
+  </p>
+
+  <h2>Achados por Tabela</h2>
+  {{range .Tables}}
+  <h3>{{.Schema}}.{{.TableName}} <span style="font-size:0.8em;color:#666">({{len .PIIColumns}} coluna(s) com PII)</span></h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Coluna</th>
+        <th>Tipo SQL</th>
+        <th>PII Detectado</th>
+        <th>Risco</th>
+        <th>Método</th>
+        <th>Matches</th>
+        <th>Amostras (anonimizadas)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .PIIColumns}}
+      <tr>
+        <td><code>{{.ColumnName}}</code></td>
+        <td>{{.ColumnType}}</td>
+        <td>{{range .PIITypes}}{{.}} {{end}}</td>
+        <td class="risk-{{.RiskLevel}}">{{.RiskLevel}}</td>
+        <td>{{.DetectionMethod}}</td>
+        <td>{{.MatchCount}}</td>
+        <td>{{range .SampleValues}}<code>{{.}}</code> {{end}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+
+  <h2>Recomendações</h2>
+  <ul>
+    <li><strong>CRÍTICO (CPF, CNPJ, Cartão):</strong> Criptografar imediatamente, restringir acessos, registrar no RoPA.</li>
+    <li><strong>ALTO (Email, Telefone, Data de nascimento):</strong> Pseudonimizar, revisar permissões de acesso.</li>
+    <li><strong>MÉDIO (Nome, CEP):</strong> Documentar no RoPA, avaliar necessidade de tratamento.</li>
+    <li><strong>BAIXO (Endereço por heurística):</strong> Confirmar manualmente se é dado pessoal real.</li>
+  </ul>
+
+
+  {{if .Warnings}}
+  <h2>⚠️ Avisos</h2>
+  <ul class="warnings">
+    {{range .Warnings}}<li>{{.}}</li>{{end}}
+  </ul>
+  {{end}}
+  <footer>
+    Gerado por <strong>PII Hunter</strong> &nbsp;|&nbsp;
+    Referências: LGPD Art. 37 (RoPA), Art. 46 (segurança técnica), Art. 52 (sanções até R$ 50 mi) &nbsp;|&nbsp;
+    <a href="https://github.com/serjjiin/pii-hunter">github.com/serjjiin/pii-hunter</a>
+  </footer>
+</body>
+</html>
