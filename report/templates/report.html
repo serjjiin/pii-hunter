@@ -88,6 +88,13 @@
     <li><strong>BAIXO (Endereço por heurística):</strong> Confirmar manualmente se é dado pessoal real.</li>
   </ul>
 
+
+  {{if .Warnings}}
+  <h2>⚠️ Avisos</h2>
+  <ul class="warnings">
+    {{range .Warnings}}<li>{{.}}</li>{{end}}
+  </ul>
+  {{end}}
   <footer>
     Gerado por <strong>PII Hunter</strong> &nbsp;|&nbsp;
     Referências: LGPD Art. 37 (RoPA), Art. 46 (segurança técnica), Art. 52 (sanções até R$ 50 mi) &nbsp;|&nbsp;
