@@ -13,6 +13,7 @@ type Scanner struct {
 	db        *sql.DB
 	inspector *Inspector
 	cfg       models.Config
+	warnings  []string // erros não-fatais acumulados durante o scan
 }
 
 // NewScanner cria um Scanner a partir de uma conexão e configuração existentes.
@@ -26,6 +27,7 @@ func NewScanner(db *sql.DB, cfg models.Config) *Scanner {
 
 // Scan executa o scan completo e retorna o ScanResult.
 func (s *Scanner) Scan() (models.ScanResult, error) {
+	s.warnings = nil
 	start := time.Now()
 	result := models.ScanResult{
 		Host:      s.cfg.Host,
@@ -54,6 +56,7 @@ func (s *Scanner) Scan() (models.ScanResult, error) {
 
 	result.DurationSec = time.Since(start).Seconds()
 	result.Summary = buildSummary(result.Tables)
+	result.Warnings = s.warnings
 	return result, nil
 }
 
@@ -86,7 +89,11 @@ func (s *Scanner) scanTable(tableName string) (models.TableFinding, int, error) 
 func (s *Scanner) scanColumn(tableName string, col Column) (models.ColumnFinding, bool) {
 	heuristicTypes := DetectByColumnName(col.Name)
 
-	samples, _ := s.inspector.GetSampleValues(tableName, col.Name)
+	samples, err := s.inspector.GetSampleValues(tableName, col.Name)
+	if err != nil {
+		s.warnings = append(s.warnings,
+			fmt.Sprintf("falha ao amostrar %s.%s: %v", tableName, col.Name, err))
+	}
 	regexTypes := detectInSamples(samples)
 
 	allTypes := mergeTypes(heuristicTypes, regexTypes)
@@ -158,14 +165,15 @@ func detectionMethod(heuristic, regex []models.PIIType) models.DetectionMethod {
 	}
 }
 
+// primaryType retorna o tipo de PII de maior risco da lista.
+// Pré-condição: types não pode ser vazio.
 func primaryType(types []models.PIIType) models.PIIType {
-	order := map[models.RiskLevel]int{
-		models.RiskCritical: 4, models.RiskHigh: 3,
-		models.RiskMedium: 2, models.RiskLow: 1,
+	if len(types) == 0 {
+		return ""
 	}
 	best := types[0]
 	for _, t := range types[1:] {
-		if order[models.RiskForPII(t)] > order[models.RiskForPII(best)] {
+		if models.RiskOrder[models.RiskForPII(t)] > models.RiskOrder[models.RiskForPII(best)] {
 			best = t
 		}
 	}
@@ -173,13 +181,9 @@ func primaryType(types []models.PIIType) models.PIIType {
 }
 
 func highestRiskFromColumns(cols []models.ColumnFinding) models.RiskLevel {
-	order := map[models.RiskLevel]int{
-		models.RiskCritical: 4, models.RiskHigh: 3,
-		models.RiskMedium: 2, models.RiskLow: 1,
-	}
 	highest := models.RiskLow
 	for _, c := range cols {
-		if order[c.RiskLevel] > order[highest] {
+		if models.RiskOrder[c.RiskLevel] > models.RiskOrder[highest] {
 			highest = c.RiskLevel
 		}
 	}

@@ -3,7 +3,10 @@
 // níveis de risco e resultados de scan.
 package models
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 // PIIType representa um tipo de dado pessoal conforme definido pela LGPD.
 type PIIType string
@@ -29,6 +32,15 @@ const (
 	RiskMedium   RiskLevel = "MÉDIO"
 	RiskLow      RiskLevel = "BAIXO"
 )
+
+// RiskOrder mapeia RiskLevel para um valor numérico de ordenação.
+// Exportado para reutilização em outros pacotes sem duplicação.
+var RiskOrder = map[RiskLevel]int{
+	RiskCritical: 4,
+	RiskHigh:     3,
+	RiskMedium:   2,
+	RiskLow:      1,
+}
 
 // DetectionMethod indica como o PII foi detectado.
 type DetectionMethod string
@@ -58,15 +70,9 @@ func RiskForPII(p PIIType) RiskLevel {
 // HighestRisk retorna o maior nível de risco de uma lista de tipos de PII.
 func HighestRisk(types []PIIType) RiskLevel {
 	highest := RiskLow
-	order := map[RiskLevel]int{
-		RiskCritical: 4,
-		RiskHigh:     3,
-		RiskMedium:   2,
-		RiskLow:      1,
-	}
 	for _, t := range types {
 		r := RiskForPII(t)
-		if order[r] > order[highest] {
+		if RiskOrder[r] > RiskOrder[highest] {
 			highest = r
 		}
 	}
@@ -113,6 +119,7 @@ type ScanResult struct {
 	TotalPIICols int
 	Tables       []TableFinding
 	Summary      RiskSummary
+	Warnings     []string // erros não-fatais ocorridos durante o scan
 }
 
 // Config representa a configuração de conexão com o banco de dados.
@@ -130,22 +137,9 @@ type Config struct {
 // ConnectionString retorna a string de conexão PostgreSQL formatada.
 func (c Config) ConnectionString() string {
 	return "host=" + c.Host +
-		" port=" + itoa(c.Port) +
+		" port=" + strconv.Itoa(c.Port) +
 		" dbname=" + c.Database +
 		" user=" + c.User +
 		" password=" + c.Password +
 		" sslmode=" + c.SSLMode
-}
-
-// itoa converte int para string sem importar strconv no pacote de modelos.
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	result := ""
-	for n > 0 {
-		result = string(rune('0'+n%10)) + result
-		n /= 10
-	}
-	return result
 }
