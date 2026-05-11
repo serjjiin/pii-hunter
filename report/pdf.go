@@ -283,10 +283,11 @@ func riskTextColor(level models.RiskLevel) rgb {
 }
 
 func truncate(s string, max int) string {
-	if len(s) <= max {
+	runes := []rune(s)
+	if len(runes) <= max {
 		return s
 	}
-	return s[:max-2] + ".."
+	return string(runes[:max-2]) + ".."
 }
 
 func joinTypes(types []models.PIIType) string {

@@ -38,6 +38,13 @@ func TestGeneratePDF(t *testing.T) {
 		assert.True(t, len(data) >= 5 && string(data[:5]) == "%PDF-",
 			"arquivo deveria começar com assinatura PDF")
 	})
+
+	t.Run("PDF com warnings é gerado sem erro", func(t *testing.T) {
+		r := scanResultFixture()
+		r.Warnings = []string{"falha ao amostrar coluna x"}
+		err := GeneratePDF(r, tmpDir)
+		assert.NoError(t, err)
+	})
 }
 
 func TestGeneratePDF_EmptyResult(t *testing.T) {
